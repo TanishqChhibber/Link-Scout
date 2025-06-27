@@ -7,9 +7,8 @@ import os # Import os for environment variables
 import json # For parsing potential JSON error responses
 
 # IMPORTANT: Set your Serper.dev API key securely
-# It's highly recommended to use environment variables in a production setup.
-# For local development, you can set it directly here, but be careful not to commit it publicly.
-SERPER_API_KEY = ("1048b5f4e40fbaccbd7fe998a333d6f6276ecd46") # <--- REPLACE THIS EXACTLY!
+# Use environment variable for Serper API key
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
 SHEET_NAME = "LinkScout Leads" # Name of your Google Sheet
 CREDS_FILE = "credentials.json" # Path to your service account credentials file
