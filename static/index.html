@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkScout: LinkedIn Lead Finder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #0077b5; /* LinkedIn blue */
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input[type="text"] {
+            width: calc(100% - 22px); /* Account for padding and border */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        button {
+            background-color: #28a745; /* Green for action */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px; /* Added for spacing between buttons */
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        button.secondary {
+            background-color: #007bff;
+        }
+        button.secondary:hover {
+            background-color: #0056b3;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        #results {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        .profile-card {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .profile-card h4 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .profile-card p {
+            margin: 0;
+            color: #555;
+            font-size: 0.9em;
+        }
+        .profile-card a {
+            color: #0077b5;
+            text-decoration: none;
+        }
+        .profile-card a:hover {
+            text-decoration: underline;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .message.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .hidden {
+            display: none;
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            font-size: 1.1em;
+            color: #555;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .loading::before {
+            content: ' ';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0077b5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            color: #212529;
+        }
+        .table th, .table td {
+            padding: 0.75rem;
+            vertical-align: top;
+            border-top: 1px solid #dee2e6;
+        }
+        .table thead th {
+            vertical-align: bottom;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 LinkScout: LinkedIn Lead Finder</h1>
+        <p>Search LinkedIn profiles by role — save, click, connect!</p>
+
+        <h3>🔍 Choose a predefined role or enter a custom search term</h3>
+
+        <div class="form-group">
+            <label for="keywordSelect">Pick from predefined roles:</label>
+            <select id="keywordSelect"></select>
+        </div>
+        <div class="form-group">
+            <label for="customKeyword">Or enter a custom keyword:</label>
+            <input type="text" id="customKeyword" placeholder="e.g., 'AI startup founder'">
+        </div>
+        <div class="form-group">
+            <input type="checkbox" id="useAllKeywords">
+            <label for="useAllKeywords">🔁 Search using all predefined keywords</label>
+        </div>
+
+        <button id="searchButton">🚀 Search</button>
+
+        <div id="messageArea"></div>
+        
+
+        <div id="results">
+            <h2>Search Results</h2>
+            <div id="profileList">
+                <p>No results yet. Perform a search!</p>
+            </div>
+        </div>
+
+        <div id="actions" class="hidden">
+            <h2>📆 Export & Actions</h2>
+            <button id="downloadExcelButton" class="secondary">📈 Download Excel</button>
+            <button id="downloadCsvButton" class="secondary">📄 Download CSV</button>
+            <button id="exportGoogleSheetsButton" class="secondary">📊 Export to Google Sheets</button>
+            <button id="openAllButton" class="danger">🌐 Open All in Browser (Server-Side)</button>
+            <div id="actionMessageArea" class="message hidden"></div>
+        </div>
+
+        <button id="showHistoryButton" class="secondary">📜 Show Search History</button>
+        <div id="historySection" class="hidden">
+            <h2>🔎 Search History</h2>
+            <div class="table-responsive">
+                <table class="table table-striped" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>LinkedIn URL</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button id="downloadHistoryExcel" class="secondary">Download History Excel</button>
+        </div>
+    </div>
+
+    <script>
+        const keywords = [
+            "venture scout", "startup scout", "deal scout", "scout program", "VC scout",
+            "100X.VC scout", "Gemba Capital scout", "Sequoia scout", "Kinetic Investments scout",
+            "Antler scout", "First Cheque scout", "Lightspeed scout", "Accel scout",
+            "early stage investor", "seed investor", "pre-seed investor", "angel investor",
+            "syndicate lead", "angel network member", "LetsVenture scout", "AngelList syndicate",
+            "ecosystem builder", "startup connector", "deal sourcing", "startup sourcing",
+            "founder relations", "portfolio support", "venture partner", "operator investor",
+            "founder turned investor", "micro-VC scout", "emerging investor", "community scout",
+            "startup pipeline", "VC analyst", "venture analyst", "investment analyst",
+            "dealflow manager", "startup investor", "startup mentor", "accelerator scout",
+            "startup accelerator", "angel syndicate manager"
+        ];
+
+        const keywordSelect = document.getElementById('keywordSelect');
+        const customKeywordInput = document.getElementById('customKeyword');
+        const useAllKeywordsCheckbox = document.getElementById('useAllKeywords');
+        const searchButton = document.getElementById('searchButton');
+        const messageArea = document.getElementById('messageArea');
+        
+        const profileList = document.getElementById('profileList');
+        const actionsDiv = document.getElementById('actions');
+        const downloadExcelButton = document.getElementById('downloadExcelButton');
+        const downloadCsvButton = document.getElementById('downloadCsvButton');
+        const exportGoogleSheetsButton = document.getElementById('exportGoogleSheetsButton');
+        const openAllButton = document.getElementById('openAllButton');
+        const actionMessageArea = document.getElementById('actionMessageArea');
+
+        // --- HISTORY BUTTON & SECTION ---
+        const showHistoryButton = document.getElementById('showHistoryButton');
+        const historySection = document.getElementById('historySection');
+        const historyTableBody = document.querySelector('#historyTable tbody');
+        const downloadHistoryExcel = document.getElementById('downloadHistoryExcel');
+
+        // Populate the select box
+        keywordSelect.innerHTML = '<option value="">-- Select a role --</option>';
+        keywords.forEach(keyword => {
+            const option = document.createElement('option');
+            option.value = keyword;
+            option.textContent = keyword;
+            keywordSelect.appendChild(option);
+        });
+
+        function displayMessage(type, message, target = messageArea) {
+            target.innerHTML = `<div class="message ${type}">${message}</div>`;
+            target.classList.remove('hidden');
+        }
+
+        function clearMessages(target = messageArea) {
+            target.innerHTML = '';
+            target.classList.add('hidden');
+        }
+
+        searchButton.addEventListener('click', async () => {
+            clearMessages();
+            clearMessages(actionMessageArea);
+            profileList.innerHTML = ''; // Clear previous results
+            actionsDiv.classList.add('hidden');
+            historySection.classList.add('hidden'); // Hide history section on new search
+            
+
+            const selectedKeyword = keywordSelect.value;
+            const customKeyword = customKeywordInput.value.trim();
+            const useAll = useAllKeywordsCheckbox.checked;
+
+            let requestBody = {};
+            if (useAll) {
+                requestBody = { use_all_keywords: true };
+            } else if (selectedKeyword) {
+                requestBody = { selected_keyword: selectedKeyword };
+            } else if (customKeyword) {
+                requestBody = { custom_keyword: customKeyword };
+            } else {
+                displayMessage('warning', 'Please select or enter a keyword.');
+                
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                
+
+                if (response.ok) {
+                    const profiles = await response.json();
+                    if (profiles.length > 0) {
+                        profileList.innerHTML = ''; // Clear "No results yet"
+                        profiles.forEach(person => {
+                            const card = document.createElement('div');
+                            card.className = 'profile-card';
+                            card.innerHTML = `
+                                <h4>${person.name}</h4>
+                                <p><em>${person.role}</em></p>
+                                <p><a href="${person.link}" target="_blank">🔗 View Profile</a></p>
+                            `;
+                            profileList.appendChild(card);
+                        });
+                        displayMessage('success', `Found ${profiles.length} profiles (Indian prioritized)! Results also saved to linkscout_latest_export.xlsx on the server.`);
+                        actionsDiv.classList.remove('hidden'); // Show export buttons
+                    } else {
+                        profileList.innerHTML = '<p>No profiles found for your search.</p>';
+                        displayMessage('info', 'No results found for your query.');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    displayMessage('error', `Error: ${errorData.detail || 'An unknown error occurred during search.'}`);
+                    profileList.innerHTML = '<p>An error occurred. Please try again.</p>';
+                }
+            } catch (error) {
+                
+                console.error('Fetch error:', error);
+                displayMessage('error', 'Network error or server unavailable. Please try again later.');
+                profileList.innerHTML = '<p>An error occurred. Please try again.</p>';
+            }
+        });
+
+        downloadExcelButton.addEventListener('click', async () => {
+            clearMessages(actionMessageArea);
+            displayMessage('info', 'Preparing Excel file for download...', actionMessageArea);
+            try {
+                // This will trigger a download in the browser
+                const response = await fetch('/api/export/excel');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'linkscout_download.xlsx'; // Suggested filename for user
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    displayMessage('success', 'Excel file download initiated. Check your downloads folder.', actionMessageArea);
+                } else {
+                    const errorData = await response.json();
+                    displayMessage('error', `Failed to download Excel: ${errorData.detail || 'Unknown error.'}`, actionMessageArea);
+                }
+            } catch (error) {
+                console.error('Error downloading Excel:', error);
+                displayMessage('error', 'Network error or server issue during Excel download.', actionMessageArea);
+            }
+        });
+
+        downloadCsvButton.addEventListener('click', async () => {
+            clearMessages(actionMessageArea);
+            displayMessage('info', 'Preparing CSV file for download...', actionMessageArea);
+            try {
+                const response = await fetch('/api/export/csv');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'linkscout_download.csv'; // Suggested filename for user
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    displayMessage('success', 'CSV file download initiated. Check your downloads folder.', actionMessageArea);
+                } else {
+                    const errorData = await response.json();
+                    displayMessage('error', `Failed to download CSV: ${errorData.detail || 'Unknown error.'}`, actionMessageArea);
+                }
+            } catch (error) {
+                console.error('Error downloading CSV:', error);
+                displayMessage('error', 'Network error or server issue during CSV download.', actionMessageArea);
+            }
+        });
+
+        exportGoogleSheetsButton.addEventListener('click', async () => {
+            clearMessages(actionMessageArea);
+            displayMessage('info', 'Exporting to Google Sheets...', actionMessageArea);
+            try {
+                const response = await fetch('/api/export/google_sheets', {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    displayMessage('success', data.message, actionMessageArea);
+                } else {
+                    const errorData = await response.json();
+                    displayMessage('error', `Error exporting to Google Sheets: ${errorData.detail || 'Unknown error. Check server console for details.'}`, actionMessageArea);
+                }
+            } catch (error) {
+                console.error('Error exporting to Google Sheets:', error);
+                displayMessage('error', 'Network error or Google Sheets API issue.', actionMessageArea);
+            }
+        });
+
+        openAllButton.addEventListener('click', async () => {
+            clearMessages(actionMessageArea);
+            displayMessage('info', 'Attempting to open links in new browser tabs on the server machine...', actionMessageArea);
+            try {
+                const response = await fetch('/api/open_links', {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    displayMessage('success', data.message, actionMessageArea);
+                } else {
+                    const errorData = await response.json();
+                    displayMessage('error', `Error opening links: ${errorData.detail || 'Unknown error.'}`, actionMessageArea);
+                }
+            } catch (error) {
+                console.error('Error opening links:', error);
+                displayMessage('error', 'Network error or server issue. Links will open on the server where the backend runs.', actionMessageArea);
+            }
+        });
+
+        // --- HISTORY BUTTON & SECTION ---
+        showHistoryButton.addEventListener('click', async () => {
+            if (historySection.classList.contains('hidden')) {
+                // Fetch all profiles (history)
+                const res = await fetch('/api/profiles');
+                if (res.ok) {
+                    const data = await res.json();
+                    historyTableBody.innerHTML = '';
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${row.name}</td><td>${row.role}</td><td><a href="${row.link}" target="_blank">${row.link}</a></td>`;
+                        historyTableBody.appendChild(tr);
+                    });
+                }
+                historySection.classList.remove('hidden');
+                showHistoryButton.textContent = 'Hide Search History';
+            } else {
+                historySection.classList.add('hidden');
+                showHistoryButton.textContent = '📜 Show Search History';
+            }
+        });
+        downloadHistoryExcel.onclick = function() {
+            window.location = '/api/export/excel';
+        };
+        // --- END HISTORY ---
+    </script>
+</body>
+</html>

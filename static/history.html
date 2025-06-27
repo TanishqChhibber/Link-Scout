@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LinkScout Search History</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { padding: 2rem; }
+        .table-responsive { max-height: 70vh; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">🔎 LinkScout Search History</h1>
+        <div class="mb-3">
+            <button id="downloadExcel" class="btn btn-success">Download Excel</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped" id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>LinkedIn URL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Results will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        async function fetchHistory() {
+            const res = await fetch('/api/profiles');
+            if (!res.ok) return;
+            const data = await res.json();
+            const tbody = document.querySelector('#historyTable tbody');
+            tbody.innerHTML = '';
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${row.name}</td><td>${row.role}</td><td><a href="${row.link}" target="_blank">${row.link}</a></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        document.getElementById('downloadExcel').onclick = function() {
+            window.location = '/api/export/excel';
+        };
+        fetchHistory();
+    </script>
+</body>
+</html>
